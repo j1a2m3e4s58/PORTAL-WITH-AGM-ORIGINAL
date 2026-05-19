@@ -4,3 +4,5 @@ src/mail-api/.env
 node_modules/
 dist/
 *.log
+__pycache__/
+*.pyc
