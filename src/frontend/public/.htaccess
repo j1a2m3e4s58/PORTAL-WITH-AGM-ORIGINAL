@@ -1,6 +1,5 @@
 Options -MultiViews
 RewriteEngine On
-RewriteBase /staff/
 
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
