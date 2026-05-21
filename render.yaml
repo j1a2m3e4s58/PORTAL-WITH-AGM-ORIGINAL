@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: bawjiase-staff-api
+    name: bawjiase-staff-api-f018
     runtime: python
     plan: free
     rootDir: src/mail-api
@@ -41,7 +41,7 @@ services:
         value: /opt/render/project/src/connected-sites/agm-pro-main/data/agm-shared-backups
 
   - type: web
-    name: bawjiase-staff-preview
+    name: bawjiase-staff-preview-f018
     runtime: static
     rootDir: src/frontend
     buildCommand: npx pnpm@10.11.1 install --frozen-lockfile && npx pnpm@10.11.1 build
@@ -50,7 +50,7 @@ services:
       - key: NODE_VERSION
         value: 20.19.0
       - key: VITE_MAIL_API_URL
-        value: https://bawjiase-staff-api.onrender.com/api
+        value: https://bawjiase-staff-api-f018.onrender.com/api
       - key: HUSKY
         value: "0"
       - key: NPM_CONFIG_IGNORE_SCRIPTS
@@ -58,7 +58,7 @@ services:
     routes:
       - type: rewrite
         source: /mail-api/*
-        destination: https://bawjiase-staff-api.onrender.com/*
+        destination: https://bawjiase-staff-api-f018.onrender.com/*
       - type: rewrite
         source: /connected-sites/agm/*
         destination: /connected-sites/agm/index.html

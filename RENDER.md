@@ -4,17 +4,17 @@ This repo includes a [render.yaml](C:/Users/james/Downloads/Compressed/bawjiase-
 
 It creates:
 
-- `bawjiase-staff-api`: Python web service for email and shared presence endpoints
-- `bawjiase-staff-preview`: static frontend site
+- `bawjiase-staff-api-f018`: Python web service for email and shared presence endpoints
+- `bawjiase-staff-preview-f018`: static frontend site
 
-The frontend build uses `VITE_MAIL_API_URL=https://bawjiase-staff-api.onrender.com/api` so upload and API requests go directly to the Render API service during preview deploys.
+The frontend build uses `VITE_MAIL_API_URL=https://bawjiase-staff-api-f018.onrender.com/api` so upload and API requests go directly to the Render API service during preview deploys.
 
 ## How to deploy
 
 1. Push this repo to GitHub.
 2. In Render, click `New` -> `Blueprint`.
 3. Connect the GitHub repo and deploy the blueprint.
-4. After the services are created, open the `bawjiase-staff-api` service and set:
+4. After the services are created, open the `bawjiase-staff-api-f018` service and set:
    - `MAIL_SERVER`
    - `MAIL_USERNAME`
    - `MAIL_PASSWORD`
@@ -24,7 +24,7 @@ The frontend build uses `VITE_MAIL_API_URL=https://bawjiase-staff-api.onrender.c
 
 ## Important note
 
-The frontend blueprint rewrites `/mail-api/*` to `https://bawjiase-staff-api.onrender.com/*`.
+The frontend blueprint rewrites `/mail-api/*` to `https://bawjiase-staff-api-f018.onrender.com/*`.
 
 If Render gives your API service a different hostname, update that route in Render or in [render.yaml](C:/Users/james/Downloads/Compressed/bawjiase-staff-portal-main/render.yaml), then redeploy the static site.
 
