@@ -4,7 +4,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { hashPassword } from "@/lib/auth-crypto";
-import { apiLogin } from "@/lib/backend-client";
+import {
+  apiLogin,
+  getOfficialEmailError,
+  isOfficialBankEmail,
+} from "@/lib/backend-client";
 import { useAuth } from "@/store/auth";
 import { isOk } from "@/types";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -24,6 +28,10 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email || !password) return;
+    if (!isOfficialBankEmail(email)) {
+      toast.error(getOfficialEmailError(email));
+      return;
+    }
     setIsLoading(true);
     try {
       const result = await apiLogin(email, hashPassword(password));
@@ -65,7 +73,7 @@ export default function LoginPage() {
           <Input
             id="email"
             type="email"
-            placeholder="you@bawjiasearearuralbank.com"
+            placeholder="you@bawjiasecommunitybank.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="h-12 rounded-xl glass-input text-base"

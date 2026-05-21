@@ -16,7 +16,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { hashPassword } from "@/lib/auth-crypto";
-import { apiRegister, apiResendCode } from "@/lib/backend-client";
+import {
+  apiRegister,
+  apiResendCode,
+  getOfficialEmailError,
+  isOfficialBankEmail,
+} from "@/lib/backend-client";
 import { useAuth } from "@/store/auth";
 import { BRANCHES, DEPARTMENTS, isOk } from "@/types";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -67,8 +72,8 @@ export default function RegisterPage() {
     password !== confirmPassword;
 
   async function submitRegistration(code?: string) {
-    if (!email.endsWith("@bawjiasearearuralbank.com")) {
-      toast.error("Please use your official @bawjiasearearuralbank.com email");
+    if (!isOfficialBankEmail(email)) {
+      toast.error(getOfficialEmailError(email));
       return;
     }
     if (password !== confirmPassword) {
@@ -297,7 +302,7 @@ export default function RegisterPage() {
           <Input
             id="reg-email"
             type="email"
-            placeholder="you@bawjiasearearuralbank.com"
+            placeholder="you@bawjiasecommunitybank.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="h-9 rounded-lg glass-input"

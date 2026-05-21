@@ -19,7 +19,8 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 DATA_DIR = os.getenv("PORTAL_DATA_DIR", BASE_DIR).strip() or BASE_DIR
 FRONTEND_PUBLIC_DIR = os.getenv("PORTAL_FRONTEND_DIR", os.path.join(BASE_DIR, "public")).strip() or os.path.join(BASE_DIR, "public")
 
-OFFICIAL_EMAIL_DOMAIN = "@bawjiasearearuralbank.com"
+OFFICIAL_EMAIL_DOMAIN = "@bawjiasecommunitybank.com"
+LEGACY_EMAIL_DOMAIN = "@bawjiasearearuralbank.com"
 PRESENCE_STORE_PATH = os.path.join(DATA_DIR, "presence_store.json")
 PASSWORD_STORE_PATH = os.path.join(DATA_DIR, "password_store.json")
 USERS_STORE_PATH = os.path.join(DATA_DIR, "users_store.json")
@@ -57,7 +58,7 @@ INITIAL_USERS = [
         "id": "db-user-6",
         "fullname": "Desmond Tettey Quarshie",
         "phone": "0243670230",
-        "email": "dquarshie@bawjiasearearuralbank.com",
+        "email": "dquarshie@bawjiasecommunitybank.com",
         "role": "GeneralStaff",
         "position": "Staff",
         "department": "BANKING OPERATIONS",
@@ -73,7 +74,7 @@ INITIAL_USERS = [
         "id": "db-user-9",
         "fullname": "Jane Afua Bruku",
         "phone": "0248154869",
-        "email": "jbruku@bawjiasearearuralbank.com",
+        "email": "jbruku@bawjiasecommunitybank.com",
         "role": "GeneralStaff",
         "position": "Staff",
         "department": "COMPLIANCE",
@@ -89,7 +90,7 @@ INITIAL_USERS = [
         "id": "db-user-5",
         "fullname": "Kwabena Asare",
         "phone": "0599779664",
-        "email": "kasare@bawjiasearearuralbank.com",
+        "email": "kasare@bawjiasecommunitybank.com",
         "role": "GeneralStaff",
         "position": "Staff",
         "department": "COMPLIANCE",
@@ -105,7 +106,7 @@ INITIAL_USERS = [
         "id": "db-user-8",
         "fullname": "Kwesi Adu Snr Yeenu-Prah",
         "phone": "0555443053",
-        "email": "kyeenu-prah@bawjiasearearuralbank.com",
+        "email": "kyeenu-prah@bawjiasecommunitybank.com",
         "role": "HRAdmin",
         "position": "Staff",
         "department": "HR",
@@ -121,7 +122,7 @@ INITIAL_USERS = [
         "id": "db-user-4",
         "fullname": "Ato Asiedu Mensah",
         "phone": "0247554428",
-        "email": "amensah@bawjiasearearuralbank.com",
+        "email": "amensah@bawjiasecommunitybank.com",
         "role": "SuperAdmin",
         "position": "Staff",
         "department": "IT",
@@ -137,7 +138,7 @@ INITIAL_USERS = [
         "id": "db-user-2",
         "fullname": "James Lincoln Awuah",
         "phone": "0536799490",
-        "email": "lawuah@bawjiasearearuralbank.com",
+        "email": "lawuah@bawjiasecommunitybank.com",
         "role": "SuperAdmin",
         "position": "Staff",
         "department": "IT",
@@ -153,7 +154,7 @@ INITIAL_USERS = [
         "id": "db-user-3",
         "fullname": "Nathaniel Oglie Narh",
         "phone": "0246377830",
-        "email": "nnarh@bawjiasearearuralbank.com",
+        "email": "nnarh@bawjiasecommunitybank.com",
         "role": "SuperAdmin",
         "position": "Staff",
         "department": "IT",
@@ -169,7 +170,7 @@ INITIAL_USERS = [
         "id": "db-user-7",
         "fullname": "GABRIEL OWUSU",
         "phone": "0246315586",
-        "email": "gowusu@bawjiasearearuralbank.com",
+        "email": "gowusu@bawjiasecommunitybank.com",
         "role": "GeneralStaff",
         "position": "Staff",
         "department": "RECOVERY",
@@ -585,8 +586,14 @@ def parse_session_token() -> str:
 
 def validate_email(email: str) -> str:
     normalized = (email or "").strip().lower()
+    if normalized.endswith(LEGACY_EMAIL_DOMAIN):
+        raise ValueError(
+            f"Please use your new official email address ending in {OFFICIAL_EMAIL_DOMAIN}"
+        )
     if not normalized.endswith(OFFICIAL_EMAIL_DOMAIN):
-        raise ValueError("Only official Bawjiase email addresses are allowed")
+        raise ValueError(
+            f"Only official email addresses ending in {OFFICIAL_EMAIL_DOMAIN} are allowed"
+        )
     return normalized
 
 
@@ -666,6 +673,86 @@ def read_json_file(path: str, default):
             return json.load(handle)
     except Exception:
         return default
+
+
+def migrate_email_address(email: str) -> str:
+    normalized = str(email or "").strip().lower()
+    if normalized.endswith(LEGACY_EMAIL_DOMAIN):
+        local_part = normalized[: -len(LEGACY_EMAIL_DOMAIN)]
+        return f"{local_part}{OFFICIAL_EMAIL_DOMAIN}"
+    return normalized
+
+
+def migrate_legacy_domain_data() -> None:
+    users = read_json_file(USERS_STORE_PATH, [])
+    if isinstance(users, list):
+        changed = False
+        migrated_users = []
+        for item in users:
+            if not isinstance(item, dict):
+                migrated_users.append(item)
+                continue
+            next_item = dict(item)
+            email = str(next_item.get("email", "") or "").strip().lower()
+            migrated_email = migrate_email_address(email)
+            if migrated_email != email:
+                next_item["email"] = migrated_email
+                changed = True
+            migrated_users.append(next_item)
+        if changed:
+            atomic_write_json(USERS_STORE_PATH, migrated_users)
+
+    passwords = read_json_file(PASSWORD_STORE_PATH, {})
+    if isinstance(passwords, dict):
+        changed = False
+        migrated_passwords: dict[str, str] = {}
+        for email, password_hash in passwords.items():
+            migrated_email = migrate_email_address(email)
+            if migrated_email != str(email).strip().lower():
+                changed = True
+            migrated_passwords[migrated_email] = password_hash
+        if changed:
+            atomic_write_json(PASSWORD_STORE_PATH, migrated_passwords)
+
+    pending = read_json_file(PENDING_VERIFICATIONS_PATH, {})
+    if isinstance(pending, dict):
+        changed = False
+        migrated_pending: dict[str, dict] = {}
+        for email, item in pending.items():
+            migrated_email = migrate_email_address(email)
+            next_item = dict(item) if isinstance(item, dict) else item
+            if isinstance(next_item, dict) and isinstance(next_item.get("user"), dict):
+                user_email = str(next_item["user"].get("email", "") or "").strip().lower()
+                migrated_user_email = migrate_email_address(user_email)
+                if migrated_user_email != user_email:
+                    next_user = dict(next_item["user"])
+                    next_user["email"] = migrated_user_email
+                    next_item["user"] = next_user
+                    changed = True
+            if migrated_email != str(email).strip().lower():
+                changed = True
+            migrated_pending[migrated_email] = next_item
+        if changed:
+            atomic_write_json(PENDING_VERIFICATIONS_PATH, migrated_pending)
+
+    tokens = read_json_file(RESET_TOKENS_PATH, {})
+    if isinstance(tokens, dict):
+        changed = False
+        migrated_tokens: dict[str, dict] = {}
+        for token, item in tokens.items():
+            next_item = dict(item) if isinstance(item, dict) else item
+            if isinstance(next_item, dict):
+                email = str(next_item.get("email", "") or "").strip().lower()
+                migrated_email = migrate_email_address(email)
+                if migrated_email != email:
+                    next_item["email"] = migrated_email
+                    changed = True
+            migrated_tokens[str(token)] = next_item
+        if changed:
+            atomic_write_json(RESET_TOKENS_PATH, migrated_tokens)
+
+
+migrate_legacy_domain_data()
 
 
 def normalize_user(raw: dict) -> dict:

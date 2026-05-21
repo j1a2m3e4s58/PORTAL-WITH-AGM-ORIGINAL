@@ -2,7 +2,11 @@ import { AuthShell } from "@/components/AuthShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiRequestPasswordReset } from "@/lib/backend-client";
+import {
+  apiRequestPasswordReset,
+  getOfficialEmailError,
+  isOfficialBankEmail,
+} from "@/lib/backend-client";
 import { isOk } from "@/types";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft, CheckCircle2, Loader2, Mail } from "lucide-react";
@@ -17,6 +21,10 @@ export default function ForgotPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
+    if (!isOfficialBankEmail(email)) {
+      toast.error(getOfficialEmailError(email));
+      return;
+    }
     setIsLoading(true);
     try {
       const result = await apiRequestPasswordReset(email);
@@ -88,7 +96,7 @@ export default function ForgotPasswordPage() {
             <Input
               id="email"
               type="email"
-              placeholder="you@bawjiasearearuralbank.com"
+              placeholder="you@bawjiasecommunitybank.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="glass-input pl-10"
