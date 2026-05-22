@@ -57,6 +57,10 @@ export function useAppActor<TActor>(
         return mockBackend as unknown as TActor;
       }
 
+      if (import.meta.env.VITE_USE_MOCK === "true") {
+        return mockBackend as unknown as TActor;
+      }
+
       const inferredRuntimeBackendUrl =
         import.meta.env.VITE_RUNTIME_BACKEND_URL?.trim() ?? "";
 
@@ -73,10 +77,6 @@ export function useAppActor<TActor>(
         return createRuntimeBackend(
           inferredRuntimeBackendUrl,
         ) as unknown as TActor;
-      }
-
-      if (import.meta.env.VITE_USE_MOCK === "true") {
-        return mockBackend as unknown as TActor;
       }
 
       if (!isAuthenticated) {

@@ -30,5 +30,5 @@ Steps:
 
 ## Notes
 
-- Production builds currently use mock mode through [src/frontend/.env.production](C:/Users/james/Downloads/Compressed/agm-pro-main/src/frontend/.env.production), which is the safest option for immediate demo deployment.
-- If you later connect a real backend, replace the production env settings and update `env.json` accordingly.
+- Production builds use mock mode through [src/frontend/.env.production](C:/Users/james/Downloads/Compressed/agm-pro-main/src/frontend/.env.production), which avoids login fetch failures when no runtime AGM backend is deployed.
+- If you later connect a real backend, set `VITE_USE_MOCK=false` and provide `VITE_RUNTIME_BACKEND_URL` in your Render or cPanel build environment.
