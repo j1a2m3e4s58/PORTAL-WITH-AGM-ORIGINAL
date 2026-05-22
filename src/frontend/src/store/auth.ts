@@ -51,11 +51,37 @@ function serializeAuthUser(user: User): string {
   );
 }
 
+function getActivityStore(): Storage | null {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function readActivity(): number {
+  try {
+    const value = getActivityStore()?.getItem(AUTH_ACTIVITY_KEY) ?? "0";
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  } catch {
+    return 0;
+  }
+}
+
 function markActivity(timestamp = Date.now()) {
   try {
-    localStorage.setItem(AUTH_ACTIVITY_KEY, String(timestamp));
+    getActivityStore()?.setItem(AUTH_ACTIVITY_KEY, String(timestamp));
   } catch {
     // Ignore storage failures to keep the app usable.
+  }
+}
+
+function clearActivity() {
+  try {
+    getActivityStore()?.removeItem(AUTH_ACTIVITY_KEY);
+  } catch {
+    // Ignore storage failures.
   }
 }
 
@@ -65,14 +91,12 @@ function loadStoredUser(): User | null {
     if (expiry && Date.now() > Number(expiry)) {
       localStorage.removeItem(AUTH_KEY);
       localStorage.removeItem(AUTH_EXPIRY_KEY);
-      localStorage.removeItem(AUTH_ACTIVITY_KEY);
+      clearActivity();
       return null;
     }
-    const lastActivity = localStorage.getItem(AUTH_ACTIVITY_KEY);
-    if (lastActivity && Date.now() - Number(lastActivity) > INACTIVITY_LIMIT_MS) {
-      localStorage.removeItem(AUTH_KEY);
-      localStorage.removeItem(AUTH_EXPIRY_KEY);
-      localStorage.removeItem(AUTH_ACTIVITY_KEY);
+    const lastActivity = readActivity();
+    if (lastActivity > 0 && Date.now() - lastActivity > INACTIVITY_LIMIT_MS) {
+      clearActivity();
       return null;
     }
     const raw = localStorage.getItem(AUTH_KEY);
@@ -108,7 +132,7 @@ function clearStoredUser() {
   try {
     localStorage.removeItem(AUTH_KEY);
     localStorage.removeItem(AUTH_EXPIRY_KEY);
-    localStorage.removeItem(AUTH_ACTIVITY_KEY);
+    clearActivity();
   } catch {
     // Ignore storage failures.
   }
@@ -185,7 +209,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const handleSessionExpired = () => {
       const currentUser = userRef.current;
       if (!currentUser) return;
-      const lastActivity = Number(localStorage.getItem(AUTH_ACTIVITY_KEY) ?? "0");
+      const lastActivity = readActivity();
       const recentlyActive =
         document.visibilityState === "visible" &&
         Number.isFinite(lastActivity) &&
@@ -299,13 +323,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const intervalId = window.setInterval(() => {
       if (cancelled || authSessionRef.current !== sessionId) return;
-      const lastActivity = Number(localStorage.getItem(AUTH_ACTIVITY_KEY) ?? "0");
+      const lastActivity = readActivity();
       if (!lastActivity || Date.now() - lastActivity > INACTIVITY_LIMIT_MS) {
         void setPresenceOffline();
         userRef.current = null;
         apiSetCurrentAuthUser(null);
         setUser(null);
-        clearStoredUser();
+        clearActivity();
         return;
       }
       if (document.visibilityState !== "visible") {
