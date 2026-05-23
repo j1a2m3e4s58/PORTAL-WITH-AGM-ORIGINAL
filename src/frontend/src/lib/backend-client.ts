@@ -3213,30 +3213,6 @@ export async function apiGetTrainingVideo(
   return video;
 }
 
-function isRecentTrainingUpload(uploadedAt: bigint | number | string | null | undefined): boolean {
-  const uploadedAtMs = Number(contentBigInt(uploadedAt) ?? 0n);
-  if (!uploadedAtMs) return false;
-  return Math.abs(Date.now() - uploadedAtMs) <= 5 * 60 * 1000;
-}
-
-async function recoverRecentTrainingVideoUpload(
-  req: UploadVideoRequest,
-): Promise<TrainingVideo | null> {
-  const uploader = currentTrainingUser()?.fullname?.trim().toLowerCase() ?? "";
-  const title = req.title.trim().toLowerCase();
-  const items = await apiGetTrainingVideos();
-  return (
-    items.find((item) => {
-      const sameTitle = item.title.trim().toLowerCase() === title;
-      const sameStorageType = item.storageType === req.storageType;
-      const recent = isRecentTrainingUpload(item.uploadedAt);
-      const sameUploader =
-        !uploader || item.uploadedBy.trim().toLowerCase() === uploader;
-      return sameTitle && sameStorageType && recent && sameUploader;
-    }) ?? null
-  );
-}
-
 export async function apiUploadTrainingVideo(
   req: UploadVideoRequest,
 ): Promise<ApiResult<TrainingVideo>> {
@@ -3276,25 +3252,9 @@ export async function apiUploadTrainingVideo(
     if (!rawVideo) return err("Video could not be uploaded");
     const video = deserializeTrainingVideo(rawVideo);
     _trainingVideos.unshift(video);
-    persistContentCache(TRAINING_VIDEOS_STORE_KEY, _trainingVideos);
     apiRecordActivity("Training video uploaded", `${video.title} was added.`);
     return ok(video);
   } catch (error) {
-    try {
-      const recovered = await recoverRecentTrainingVideoUpload(req);
-      if (recovered) {
-        const existingIndex = _trainingVideos.findIndex((item) => item.id === recovered.id);
-        if (existingIndex >= 0) {
-          _trainingVideos.splice(existingIndex, 1);
-        }
-        _trainingVideos.unshift(recovered);
-        persistContentCache(TRAINING_VIDEOS_STORE_KEY, _trainingVideos);
-        apiRecordActivity("Training video uploaded", `${recovered.title} was added.`);
-        return ok(recovered);
-      }
-    } catch {
-      // Keep the original error below if recovery lookup also fails.
-    }
     return err(error instanceof Error ? error.message : "Video could not be uploaded");
   }
 }
@@ -3472,36 +3432,9 @@ export async function apiUploadTrainingDocument(
     if (!rawDocument) return err("Document could not be uploaded");
     const doc = deserializeTrainingDocument(rawDocument);
     _trainingDocuments.unshift(doc);
-    persistContentCache(TRAINING_DOCUMENTS_STORE_KEY, _trainingDocuments);
     apiRecordActivity("Training document uploaded", `${doc.title} was added.`);
     return ok(doc);
   } catch (error) {
-    try {
-      const uploader = currentTrainingUser()?.fullname?.trim().toLowerCase() ?? "";
-      const title = req.title.trim().toLowerCase();
-      const items = await apiGetTrainingDocuments();
-      const recovered =
-        items.find((item) => {
-          const sameTitle = item.title.trim().toLowerCase() === title;
-          const sameStorageType = item.storageType === req.storageType;
-          const recent = isRecentTrainingUpload(item.uploadedAt);
-          const sameUploader =
-            !uploader || item.uploadedBy.trim().toLowerCase() === uploader;
-          return sameTitle && sameStorageType && recent && sameUploader;
-        }) ?? null;
-      if (recovered) {
-        const existingIndex = _trainingDocuments.findIndex((item) => item.id === recovered.id);
-        if (existingIndex >= 0) {
-          _trainingDocuments.splice(existingIndex, 1);
-        }
-        _trainingDocuments.unshift(recovered);
-        persistContentCache(TRAINING_DOCUMENTS_STORE_KEY, _trainingDocuments);
-        apiRecordActivity("Training document uploaded", `${recovered.title} was added.`);
-        return ok(recovered);
-      }
-    } catch {
-      // Keep the original error below if recovery lookup also fails.
-    }
     return err(error instanceof Error ? error.message : "Document could not be uploaded");
   }
 }

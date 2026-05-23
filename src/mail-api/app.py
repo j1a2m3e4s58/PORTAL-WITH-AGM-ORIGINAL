@@ -5,7 +5,6 @@ import os
 import secrets
 import smtplib
 import tempfile
-import threading
 import time
 from email.message import EmailMessage
 from urllib.parse import urlencode, urlparse, urlunparse, parse_qsl
@@ -1597,69 +1596,6 @@ def send_content_notification_email(
     send_mail(to_email, subject, text_body, html_body)
 
 
-def deliver_content_notification_emails(
-    *,
-    users: list[dict],
-    email_subject: str,
-    email_headline: str,
-    email_intro: str,
-    item_title: str,
-    link_to: str | None,
-) -> int:
-    email_count = 0
-    for user in users:
-        email = str(user.get("email", "")).strip().lower()
-        if not email:
-            continue
-        try:
-            send_content_notification_email(
-                to_email=email,
-                subject=email_subject,
-                headline=email_headline,
-                intro=email_intro,
-                item_title=item_title,
-                link_to=build_portal_link(link_to) if link_to else None,
-            )
-            email_count += 1
-        except Exception:
-            app.logger.exception("Failed sending content notification email", extra={"email": email})
-    return email_count
-
-
-def queue_content_notification_emails(
-    *,
-    users: list[dict],
-    email_subject: str,
-    email_headline: str,
-    email_intro: str,
-    item_title: str,
-    link_to: str | None,
-) -> int:
-    if not users:
-        return 0
-    queued_users = [dict(user) for user in users]
-
-    def run():
-        with app.app_context():
-            deliver_content_notification_emails(
-                users=queued_users,
-                email_subject=email_subject,
-                email_headline=email_headline,
-                email_intro=email_intro,
-                item_title=item_title,
-                link_to=link_to,
-            )
-
-    threading.Thread(target=run, name="content-email-fanout", daemon=True).start()
-    return len(
-        [
-            user
-            for user in queued_users
-            if str(user.get("email", "")).strip()
-        ]
-    )
-
-
 def fanout_content_notification(
     *,
     kind: str,
@@ -1692,20 +1628,26 @@ def fanout_content_notification(
         link_to=link_to,
     )
     email_count = 0
-    queued_email_count = 0
     if send_external_emails:
-        queued_email_count = queue_content_notification_emails(
-            users=users,
-            email_subject=email_subject,
-            email_headline=email_headline,
-            email_intro=email_intro,
-            item_title=item_title,
-            link_to=link_to,
-        )
+        for user in users:
+            email = str(user.get("email", "")).strip().lower()
+            if not email:
+                continue
+            try:
+                send_content_notification_email(
+                    to_email=email,
+                    subject=email_subject,
+                    headline=email_headline,
+                    intro=email_intro,
+                    item_title=item_title,
+                    link_to=build_portal_link(link_to) if link_to else None,
+                )
+                email_count += 1
+            except Exception:
+                app.logger.exception("Failed sending content notification email", extra={"email": email})
     return {
         "notifications": notification_count,
         "emails": email_count,
-        "queuedEmails": queued_email_count,
     }
 
 
