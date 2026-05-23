@@ -53,7 +53,7 @@ function serializeAuthUser(user: User): string {
 
 function getActivityStore(): Storage | null {
   try {
-    return window.sessionStorage;
+    return window.localStorage;
   } catch {
     return null;
   }
@@ -293,6 +293,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (timeoutId) window.clearTimeout(timeoutId);
       timeoutId = window.setTimeout(() => {
         if (cancelled || authSessionRef.current !== sessionId) return;
+        const lastActivity = readActivity();
+        if (
+          Number.isFinite(lastActivity) &&
+          lastActivity > 0 &&
+          Date.now() - lastActivity < INACTIVITY_LIMIT_MS
+        ) {
+          scheduleTimeout();
+          return;
+        }
         void setPresenceOffline();
         userRef.current = null;
         apiSetCurrentAuthUser(null);
