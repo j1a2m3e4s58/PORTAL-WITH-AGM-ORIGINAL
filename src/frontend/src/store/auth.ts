@@ -211,7 +211,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (!currentUser) return;
       const lastActivity = readActivity();
       const recentlyActive =
-        document.visibilityState === "visible" &&
         Number.isFinite(lastActivity) &&
         lastActivity > 0 &&
         Date.now() - lastActivity < INACTIVITY_LIMIT_MS;
