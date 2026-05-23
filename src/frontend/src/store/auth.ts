@@ -303,10 +303,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return;
         }
         void setPresenceOffline();
-        userRef.current = null;
-        apiSetCurrentAuthUser(null);
-        setUser(null);
-        clearStoredUser();
       }, INACTIVITY_LIMIT_MS);
     };
 
@@ -335,14 +331,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const lastActivity = readActivity();
       if (!lastActivity || Date.now() - lastActivity > INACTIVITY_LIMIT_MS) {
         void setPresenceOffline();
-        userRef.current = null;
-        apiSetCurrentAuthUser(null);
-        setUser(null);
-        clearActivity();
         return;
       }
       if (document.visibilityState !== "visible") {
-        void setPresenceOffline();
         return;
       }
       if (Date.now() - lastActivityAt > PRESENCE_IDLE_MS) {
@@ -355,8 +346,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const onVisibility = () => {
       if (document.visibilityState === "visible") {
         handleActivity();
-      } else {
-        void setPresenceOffline();
       }
     };
 
