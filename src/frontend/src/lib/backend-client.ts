@@ -34,8 +34,12 @@ export const OFFICIAL_EMAIL_DOMAIN = "@bawjiasecommunitybank.com";
 export const LEGACY_EMAIL_DOMAIN = "@bawjiasearearuralbank.com";
 const IT_ACCESS_CODE = (import.meta.env.VITE_IT_ACCESS_CODE || "").trim();
 const HR_ACCESS_CODE = (import.meta.env.VITE_HR_ACCESS_CODE || "").trim();
+const DEFAULT_MAIL_API_URL =
+  typeof window !== "undefined" && window.location.hostname.endsWith("onrender.com")
+    ? `${window.location.origin}/mail-api/api`
+    : "/api";
 const MAIL_API_URL = (
-  import.meta.env.VITE_MAIL_API_URL || `${window.location.origin}/mail-api/api`
+  import.meta.env.VITE_MAIL_API_URL || DEFAULT_MAIL_API_URL
 ).replace(/\/$/, "");
 const MAIL_API_ROOT = MAIL_API_URL.replace(/\/api$/, "");
 const ANNOUNCEMENT_DISMISS_KEY = "bcb_announcement_dismissals";
